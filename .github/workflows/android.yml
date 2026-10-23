@@ -1,42 +1,68 @@
-
-name: Xen Game Freeze APK Build
+name: Android Debug Build
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Build debug APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout source
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Validate project structure
+        run: |
+          missing=0
+          for f in settings.gradle build.gradle gradle.properties gradlew app/build.gradle app/src/main/AndroidManifest.xml; do
+            if [ ! -f "$f" ]; then
+              echo "::error file=$f::Required file is missing: $f"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Project structure is invalid. Check the file paths above."
+            exit 1
+          fi
+          echo "Project structure looks valid."
+
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Build Debug APK
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Regenerate Gradle wrapper if JAR is missing
         run: |
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew assembleDebug
-          else
-            echo "Gradle wrapper missing. Add the Android project first."
-            exit 1
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "gradle-wrapper.jar not found, generating it."
+            gradle wrapper --gradle-version 8.7
           fi
 
-      - name: Upload APK
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Xen-Game-Freeze-debug
+          name: Xen-Game-Freeze-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
+          retention-days: 7
