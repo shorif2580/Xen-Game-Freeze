@@ -10,15 +10,24 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.xengame.freeze.util.AppPrefs;
+import com.xengame.freeze.util.ThemeHelper;
 
 public class SettingsActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ThemeHelper.apply(this);
         setContentView(R.layout.activity_settings);
 
         final AppPrefs prefs = new AppPrefs(this);
+
+        Switch dark = findViewById(R.id.switch_dark);
+        dark.setChecked(prefs.isDarkTheme());
+        dark.setOnCheckedChangeListener((b, on) -> {
+            prefs.setDarkTheme(on);
+            Toast.makeText(this, "Theme saved. Reopen the screen to apply.", Toast.LENGTH_SHORT).show();
+        });
 
         Switch anim = findViewById(R.id.switch_animations);
         anim.setChecked(prefs.isAnimationsOn());
@@ -50,7 +59,6 @@ public class SettingsActivity extends Activity {
                 + "No internet, account, analytics or tracking.\n\n"
                 + "Freeze and force-stop need Shizuku with its connector. "
                 + "This build has no connector yet, so no app is frozen. "
-                + "Failures are shown honestly.\n\n"
-                + "Light/dark theme and accent colour are not in this build.");
+                + "Failures are shown honestly.");
     }
 }
